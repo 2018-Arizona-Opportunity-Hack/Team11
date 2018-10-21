@@ -3,27 +3,32 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pdf2image
 import json
+from urllib import request
 
 
 class QuestionnaireReader:
 
     def __init__(self,
-                 survey_path,
+                 survey_url,
                  p1_questions='page_1_questions.json',
                  p2_questions='page_2_questions.json'
                  ):
 
-        self.pages = pdf2image.convert_from_path(survey_path)
+        url = request.urlopen(survey_url)
+        self.pages = pdf2image.convert_from_bytes(url.read())
         with open(p1_questions) as p:
             self.page_1_questions = json.loads(p.read())
 
         with open(p2_questions) as p:
             self.page_2_questions = json.loads(p.read())
 
-        self.update_originals(self.get_array(self.pages[114]), self.page_1_questions)
-        self.update_originals(self.get_array(self.pages[115]), self.page_2_questions)
-        print(self.get_answers(self.get_array(self.pages[116]), self.page_1_questions))
-        print(self.get_answers(self.get_array(self.pages[117]), self.page_2_questions))
+        self.update_originals(imageio.imread('blank_page_1.jpg'), self.page_1_questions)
+        self.update_originals(imageio.imread('blank_page_2.jpg'), self.page_2_questions)
+
+    def translate_pages(self):
+        with open('translated_pdf.json', 'w') as o:
+            json.dump({**self.get_answers(self.get_array(self.pages[0]), self.page_1_questions),
+                       **self.get_answers(self.get_array(self.pages[1]), self.page_2_questions)}, o)
 
     @staticmethod
     def get_array(ppmImage):
@@ -39,10 +44,10 @@ class QuestionnaireReader:
         plt.figure()
         plt.imshow(array[spots[0]: spots[1], spots[2]: spots[3]])
 
-    def compare_images(self, im_list, im1, im2, location):
-        im = self.get_array(im_list[im1])
+    def compare_images(self, im1, im2, location):
+        im = self.get_array(self.pages[im1])
         self.return_image(im, location)
-        im = self.get_array(im_list[im2])
+        im = self.get_array(self.pages[im2])
         self.return_image(im, location)
 
     def update_originals(self, img_array, questions_dict):
@@ -92,5 +97,5 @@ class QuestionnaireReader:
                         answer_choice.append(answer)
             if answer_count > 1:
                 flag = 'red'
-            question_answers[question] = (answer_choice, flag)
+            question_answers[question] = {'result':answer_choice, 'flag': flag}
         return question_answers
