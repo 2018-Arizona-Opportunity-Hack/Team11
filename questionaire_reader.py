@@ -26,9 +26,14 @@ class QuestionnaireReader:
         self.update_originals(imageio.imread('blank_page_2.jpg'), self.page_2_questions)
 
     def translate_pages(self):
-        with open('translated_pdf.json', 'w') as o:
-            json.dump({**self.get_answers(self.get_array(self.pages[0]), self.page_1_questions),
-                       **self.get_answers(self.get_array(self.pages[1]), self.page_2_questions)}, o)
+        page_1 = {}
+        for num, page in enumerate(self.pages):
+            if num % 2 == 0:
+                page_1 = self.get_answers(self.get_array(page), self.page_1_questions)
+            else:
+                with open('translated_pdf_{}.json'.format((num+1)/2), 'w') as o:
+                    json.dump({**page_1,
+                               **self.get_answers(self.get_array(self.pages[1]), self.page_2_questions)}, o)
 
     @staticmethod
     def get_array(ppmImage):
@@ -76,8 +81,6 @@ class QuestionnaireReader:
                 if question_type == 'single':
                     if self.sum_darkness(im_array, spot) < spot[4] * .98:
                         answer_count += 1
-                    if question == 'quesion_11':
-                        print(answer, self.sum_darkness(im_array, spot) < spot[4] * .98)
                     if len(answer_choice) > 0:
                         continue
                     if self.sum_darkness(im_array, spot) < spot[4] * .97:
